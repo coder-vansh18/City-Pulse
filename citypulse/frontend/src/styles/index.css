@@ -6,9 +6,11 @@
 
 @layer base {
   body {
-    background-color: var(--bg);
+    background: var(--bg-gradient, var(--bg));
     color: var(--text);
     overflow-x: hidden;
+    min-height: 100vh;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 }
 
@@ -40,15 +42,15 @@
 }
 
 .leaflet-popup-content-wrapper {
-  background: var(--surface) !important;
+  background: var(--surface-solid) !important;
   color: var(--text) !important;
   border: 1px solid var(--border);
   border-radius: 1rem !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
 }
 
 .leaflet-popup-tip {
-  background: var(--surface) !important;
+  background: var(--surface-solid) !important;
 }
 
 /* Pulsing radar ring animations */

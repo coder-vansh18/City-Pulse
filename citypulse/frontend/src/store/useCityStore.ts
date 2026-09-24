@@ -75,6 +75,27 @@ interface CityState {
   resetToMockFixtures: () => void;
 }
 
+const getInitialTheme = (): 'dark' | 'light' => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('citypulse_theme');
+    if (saved === 'dark' || saved === 'light') {
+      return saved;
+    }
+  }
+  return 'light';
+};
+
+const initialTheme = getInitialTheme();
+if (typeof document !== 'undefined') {
+  if (initialTheme === 'light') {
+    document.documentElement.classList.remove('dark');
+    document.documentElement.classList.add('light');
+  } else {
+    document.documentElement.classList.remove('light');
+    document.documentElement.classList.add('dark');
+  }
+}
+
 export const useCityStore = create<CityState>((set, get) => ({
   config: null,
   pulse: null,
@@ -95,7 +116,7 @@ export const useCityStore = create<CityState>((set, get) => ({
   activeScenario: null,
   mode: 'live',
   connection: 'connecting',
-  theme: 'dark',
+  theme: initialTheme,
   soundOn: false,
   mockMode: import.meta.env.VITE_MOCK === 'true',
   selectedZoneId: null,
@@ -147,6 +168,9 @@ export const useCityStore = create<CityState>((set, get) => ({
   setActiveScenario: (activeScenario) => set({ activeScenario }),
   setConnection: (connection) => set({ connection }),
   setTheme: (theme) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('citypulse_theme', theme);
+    }
     if (theme === 'light') {
       document.documentElement.classList.remove('dark');
       document.documentElement.classList.add('light');
