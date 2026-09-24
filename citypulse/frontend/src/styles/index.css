@@ -1,0 +1,81 @@
+@import './tokens.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+  }
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* Leaflet Customizations */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  background: var(--bg) !important;
+  font-family: inherit;
+}
+
+.leaflet-popup-content-wrapper {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border);
+  border-radius: 1rem !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+.leaflet-popup-tip {
+  background: var(--surface) !important;
+}
+
+/* Pulsing radar ring animations */
+@keyframes ring-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+.pulse-ring-anim {
+  animation: ring-pulse 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  transform-origin: center;
+}
+
+/* Animated correlation links */
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+.animated-dash {
+  stroke-dasharray: 6 6;
+  animation: dash-flow 1.2s linear infinite;
+}

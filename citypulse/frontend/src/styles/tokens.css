@@ -1,0 +1,38 @@
+:root {
+  /* Dark Theme (Default) */
+  --bg: #0B1020;
+  --surface: #121A30;
+  --surface-2: #18223F;
+  --border: #26325A;
+  --text: #E8ECF8;
+  --muted: #8B97BD;
+  --accent: #6C8CFF;
+  --accent-hover: #829DFF;
+
+  --status-calm: #2DD4A7;
+  --status-watch: #F5C542;
+  --status-strained: #FF8A3D;
+  --status-critical: #FF4D6D;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-2xl: 1.25rem;
+}
+
+html.light {
+  /* Light Theme */
+  --bg: #F4F6FC;
+  --surface: #FFFFFF;
+  --surface-2: #E8EDF9;
+  --border: #D2DCF0;
+  --text: #111827;
+  --muted: #5B6B8A;
+  --accent: #4866E5;
+  --accent-hover: #3753D0;
+
+  --status-calm: #059669;
+  --status-watch: #D97706;
+  --status-strained: #EA580C;
+  --status-critical: #E11D48;
+}
