@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   MapContainer,
   TileLayer,
@@ -10,7 +10,25 @@ import {
   useMap,
 } from 'react-leaflet';
 import L from 'leaflet';
-import { Maximize2, CloudRain, Bus, Siren, Wind, Zap, Volume2 } from 'lucide-react';
+import {
+  Maximize2,
+  CloudRain,
+  Bus,
+  Siren,
+  Wind,
+  Zap,
+  Volume2,
+  Droplets,
+  Thermometer,
+  Layers as LayersIcon,
+  Plus,
+  Minus,
+  Crosshair,
+  MapPin,
+  Sparkles,
+  Info,
+  Leaf,
+} from 'lucide-react';
 import { useCityStore } from '../../store/useCityStore';
 import { useTheme } from '../../hooks/useTheme';
 import { NormalizedEvent, Status, FeedType, Insight } from '../../api/types';
@@ -47,14 +65,14 @@ function createEventIcon(event: NormalizedEvent) {
         position: relative;
         width: 28px;
         height: 28px;
-        background: #121A30;
+        background: rgba(18, 26, 48, 0.95);
         border: 2px solid ${statusColor};
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         color: ${statusColor};
-        box-shadow: 0 0 12px ${statusColor}66;
+        box-shadow: 0 4px 12px ${statusColor}55;
         cursor: pointer;
         transition: transform 0.15s ease;
       ">
@@ -80,20 +98,21 @@ function createCentroidLabelIcon(name: string, score: number, status: Status) {
     className: 'zone-centroid-label',
     html: `
       <div style="
-        background: rgba(18, 26, 48, 0.88);
-        border: 1px solid ${statusColor}88;
-        padding: 2px 8px;
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        padding: 3px 10px;
         border-radius: 9999px;
-        color: #E8ECF8;
+        color: #1e293b;
         font-family: 'Space Grotesk', sans-serif;
         font-size: 11px;
         font-weight: 600;
         white-space: nowrap;
         pointer-events: none;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        box-shadow: 0 4px 14px rgba(0,0,0,0.12);
         display: flex;
         align-items: center;
-        gap: 4px;
+        gap: 6px;
         transform: translate(-50%, -50%);
       ">
         <span>${name}</span>
@@ -133,13 +152,59 @@ function createAnomalyRingIcon(severity: number) {
   });
 }
 
-// Map Controller Helper to center map
+// Map Controller Helper to center map and handle controls
 const MapController: React.FC<{ center: [number, number]; zoom: number }> = ({ center, zoom }) => {
   const map = useMap();
   useEffect(() => {
     map.setView(center, zoom);
   }, [center, zoom, map]);
   return null;
+};
+
+// Map Action Controls Component (Right side vertical toolstrip)
+const MapActionsToolstrip: React.FC = () => {
+  const map = useMap();
+  const { setMapLayer, mapLayers } = useCityStore();
+
+  return (
+    <div className="absolute right-6 top-1/2 -translate-y-1/2 z-[1000] flex flex-col items-center bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl shadow-xl border border-black/5 dark:border-white/10 p-1.5 space-y-1">
+      <button
+        onClick={() => setMapLayer('heat', !mapLayers.heat)}
+        className={`p-2.5 rounded-xl transition-colors cursor-pointer ${
+          mapLayers.heat
+            ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+        }`}
+        title="Toggle Heat Blobs"
+      >
+        <LayersIcon className="w-4 h-4" />
+      </button>
+
+      <button
+        onClick={() => map.zoomIn()}
+        className="p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+        title="Zoom In"
+      >
+        <Plus className="w-4 h-4" />
+      </button>
+
+      <button
+        onClick={() => map.zoomOut()}
+        className="p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+        title="Zoom Out"
+      >
+        <Minus className="w-4 h-4" />
+      </button>
+
+      <button
+        onClick={() => map.setView([40.7128, -74.006], 13)}
+        className="p-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+        title="Recenter City Center"
+      >
+        <Crosshair className="w-4 h-4" />
+      </button>
+    </div>
+  );
 };
 
 interface CityMapProps {
@@ -166,17 +231,32 @@ export const CityMap: React.FC<CityMapProps> = ({
     selectedZoneId,
     setSelectedZoneId,
     highlightedInsightId,
+    pulse,
   } = useCityStore();
+
+  const [activeBubble, setActiveBubble] = useState<string | null>(null);
 
   const center: [number, number] = config?.center
     ? [config.center.lat, config.center.lng]
     : [40.7128, -74.006];
   const zoom = compact ? 12 : config?.zoom || 13;
 
-  // CARTO Tile URL
-  const tileUrl = isDark
-    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+  // Support dynamic map keys from environment variables (CARTO, Mapbox, or custom tile provider)
+  const cartoApiKey = import.meta.env.VITE_CARTO_API_KEY;
+  const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN;
+  const customTileUrl = import.meta.env.VITE_CUSTOM_TILE_URL;
+
+  let tileUrl = isDark
+    ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
+    : 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}';
+
+  if (customTileUrl) {
+    tileUrl = customTileUrl;
+  } else if (mapboxToken) {
+    tileUrl = `https://api.mapbox.com/styles/v1/mapbox/${isDark ? 'dark-v11' : 'light-v11'}/tiles/{z}/{x}/{y}?access_token=${mapboxToken}`;
+  } else if (cartoApiKey) {
+    tileUrl = `https://{s}.basemaps.cartocdn.com/${isDark ? 'dark_all' : 'light_all'}/{z}/{x}/{y}{r}.png?api_key=${cartoApiKey}`;
+  }
 
   // Zone style generator for GeoJSON
   const zoneStyle = (feature: any) => {
@@ -195,9 +275,9 @@ export const CityMap: React.FC<CityMapProps> = ({
 
     return {
       fillColor: color,
-      fillOpacity: isSelected ? 0.55 : 0.28,
-      color: isSelected ? '#FFFFFF' : color,
-      weight: isSelected ? 3 : 1.5,
+      fillOpacity: isSelected ? 0.45 : 0.18,
+      color: isSelected ? '#10b981' : color,
+      weight: isSelected ? 2.5 : 1,
       dashArray: isSelected ? '' : '3',
     };
   };
@@ -212,14 +292,14 @@ export const CityMap: React.FC<CityMapProps> = ({
       },
       mouseover: (e) => {
         const l = e.target;
-        l.setStyle({ fillOpacity: 0.45, weight: 2.5 });
+        l.setStyle({ fillOpacity: 0.35, weight: 2 });
       },
       mouseout: (e) => {
         const l = e.target;
         const isSelected = selectedZoneId === props?.id;
         l.setStyle({
-          fillOpacity: isSelected ? 0.55 : 0.28,
-          weight: isSelected ? 3 : 1.5,
+          fillOpacity: isSelected ? 0.45 : 0.18,
+          weight: isSelected ? 2.5 : 1,
         });
       },
     });
@@ -228,7 +308,7 @@ export const CityMap: React.FC<CityMapProps> = ({
   // Filtered events
   const visibleEvents = useMemo(() => {
     const list = activeFeedFilter === 'all' ? events : events.filter((e) => e.feed === activeFeedFilter);
-    return list.slice(0, compact ? 40 : 150);
+    return list.slice(0, compact ? 20 : 60);
   }, [events, activeFeedFilter, compact]);
 
   // Active Anomalies for Anomaly Rings
@@ -243,27 +323,27 @@ export const CityMap: React.FC<CityMapProps> = ({
 
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-2xl border border-border bg-bg ${className}`}
+      className={`relative w-full overflow-hidden rounded-3xl border border-black/5 dark:border-white/10 bg-slate-100 dark:bg-slate-950 shadow-2xl ${className}`}
       style={{ height }}
     >
       <MapContainer
         center={center}
         zoom={zoom}
         scrollWheelZoom={!compact}
-        zoomControl={!compact}
+        zoomControl={false}
         attributionControl={false}
         className="w-full h-full z-0"
       >
         <MapController center={center} zoom={zoom} />
 
+        {/* Free, High-Res, Watermark-Free Esri Canvas Tile Layer */}
         <TileLayer
           url={tileUrl}
           maxZoom={19}
-          subdomains="abcd"
-          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+          attribution='&copy; Esri &mdash; Esri, DeLorme, NAVTEQ'
         />
 
-        {/* Zones GeoJSON Layer */}
+        {/* Zones GeoJSON Layer (Subtle) */}
         {mapLayers.zones && zonesGeoJSON && (
           <GeoJSON
             key={`geojson-${JSON.stringify(zonesGeoJSON)}`}
@@ -328,8 +408,8 @@ export const CityMap: React.FC<CityMapProps> = ({
                   [c2.lat, c2.lng],
                 ]}
                 pathOptions={{
-                  color: isHighlighted ? '#FFFFFF' : '#A855F7',
-                  weight: isHighlighted ? 4 : 2.5,
+                  color: isHighlighted ? '#10b981' : '#f59e0b',
+                  weight: isHighlighted ? 4 : 2,
                   dashArray: '6 6',
                   className: 'animated-dash',
                 }}
@@ -368,14 +448,164 @@ export const CityMap: React.FC<CityMapProps> = ({
               </Popup>
             </Marker>
           ))}
+
+        {/* Right side floating toolstrip */}
+        <MapActionsToolstrip />
       </MapContainer>
 
-      {/* Floating Controls (Full view) */}
-      {showControls && !compact && (
-        <>
-          <LayerToggles className="absolute top-4 left-4 z-[999] max-w-[200px]" />
-          <MapLegend className="absolute bottom-6 left-4 z-[999]" />
-        </>
+      {/* Organic Gaussian Radial Heat Blobs Overlay (WeatherSwim Style) */}
+      <div className="absolute inset-0 pointer-events-none z-[400] flex items-center justify-center overflow-hidden">
+        {/* Layer 1: Outermost Soft Green Halo */}
+        <div
+          className="absolute w-[620px] h-[480px] rounded-[50%] opacity-40 blur-3xl transition-transform duration-700"
+          style={{
+            background: 'radial-gradient(circle, rgba(74, 222, 128, 0.45) 0%, rgba(134, 239, 172, 0.25) 50%, rgba(240, 253, 244, 0) 80%)',
+            transform: 'translate(-5%, -2%) scale(1.15)',
+          }}
+        />
+
+        {/* Layer 2: Middle Yellow-Amber Ring */}
+        <div
+          className="absolute w-[440px] h-[380px] rounded-[50%] opacity-55 blur-2xl transition-transform duration-700"
+          style={{
+            background: 'radial-gradient(circle, rgba(251, 191, 36, 0.6) 0%, rgba(253, 230, 138, 0.35) 60%, rgba(254, 243, 199, 0) 85%)',
+            transform: 'translate(4%, -1%)',
+          }}
+        />
+
+        {/* Layer 3: Warm Coral Orange Blob */}
+        <div
+          className="absolute w-[300px] h-[280px] rounded-[50%] opacity-65 blur-xl transition-transform duration-700"
+          style={{
+            background: 'radial-gradient(circle, rgba(251, 146, 60, 0.75) 0%, rgba(254, 215, 170, 0.4) 65%, rgba(255, 237, 213, 0) 90%)',
+            transform: 'translate(2%, 0%)',
+          }}
+        />
+
+        {/* Layer 4: Intense Core Salmon-Red Heat Spot */}
+        <div
+          className="absolute w-[180px] h-[180px] rounded-[50%] opacity-70 blur-lg transition-transform duration-700"
+          style={{
+            background: 'radial-gradient(circle, rgba(248, 113, 113, 0.85) 0%, rgba(254, 202, 202, 0.45) 60%, rgba(254, 226, 226, 0) 90%)',
+            transform: 'translate(0%, 0%)',
+          }}
+        />
+      </div>
+
+      {/* Floating Gradient Legend Pill (Top-Left of Map) */}
+      <div className="absolute top-6 left-6 z-[500] pointer-events-auto bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl p-3 px-4 shadow-xl border border-black/5 dark:border-white/10 space-y-1.5">
+        <div className="flex items-center justify-between gap-6 text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 uppercase">
+          <span>Low</span>
+          <span>High</span>
+        </div>
+        <div
+          className="w-36 h-2 rounded-full shadow-inner"
+          style={{
+            background: 'linear-gradient(to right, #4ade80, #a3e635, #facc15, #fb923c, #f87171)',
+          }}
+        />
+        <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600 dark:text-slate-300 pt-0.5">
+          <Info className="w-3.5 h-3.5 text-slate-400" />
+          <span>CO₂ concentration</span>
+        </div>
+      </div>
+
+      {/* Orbiting Frosted Glass Metric Pills & Center Location Pin */}
+      <div className="absolute inset-0 pointer-events-none z-[500] flex items-center justify-center">
+        {/* Center Target Marker */}
+        <div className="relative pointer-events-auto flex flex-col items-center group cursor-pointer">
+          <div className="w-12 h-12 rounded-full bg-white dark:bg-slate-900 shadow-2xl border-2 border-emerald-500 flex items-center justify-center transition-transform hover:scale-110">
+            <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center text-white">
+              <MapPin className="w-3 h-3 fill-white" />
+            </div>
+            {/* Pulsing ring */}
+            <span className="absolute inset-0 rounded-full border-2 border-emerald-400 animate-ping opacity-75" />
+          </div>
+          <span className="mt-1.5 px-3 py-0.5 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur border border-black/5 dark:border-white/10 text-xs font-bold text-slate-800 dark:text-white font-heading shadow-md">
+            {config?.city_name || 'Singapore'}
+          </span>
+        </div>
+
+        {/* Orbiting Bubble 1: Rainfall (Top-Left) */}
+        <div
+          onClick={() => setActiveBubble('rainfall')}
+          className="absolute -translate-x-36 -translate-y-28 pointer-events-auto group cursor-pointer"
+        >
+          <div className="w-28 h-28 rounded-full bg-white/85 dark:bg-slate-900/85 backdrop-blur-xl p-3 shadow-2xl border border-white/60 dark:border-white/10 flex flex-col items-center justify-center text-center transition-all duration-300 hover:scale-110 hover:shadow-emerald-500/20">
+            <div className="p-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 mb-1">
+              <CloudRain className="w-4 h-4" />
+            </div>
+            <div className="flex items-baseline gap-0.5">
+              <span className="text-xl font-bold font-heading text-slate-800 dark:text-white">0</span>
+              <span className="text-[10px] font-mono text-slate-400">mm</span>
+            </div>
+            <span className="text-[9px] font-mono uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
+              RAINFALL
+            </span>
+          </div>
+        </div>
+
+        {/* Orbiting Bubble 2: Humidity (Top-Right) */}
+        <div
+          onClick={() => setActiveBubble('humidity')}
+          className="absolute translate-x-36 -translate-y-28 pointer-events-auto group cursor-pointer"
+        >
+          <div className="w-28 h-28 rounded-full bg-white/85 dark:bg-slate-900/85 backdrop-blur-xl p-3 shadow-2xl border border-white/60 dark:border-white/10 flex flex-col items-center justify-center text-center transition-all duration-300 hover:scale-110 hover:shadow-sky-500/20">
+            <div className="p-1.5 rounded-full bg-sky-100 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 mb-1">
+              <Droplets className="w-4 h-4" />
+            </div>
+            <div className="flex items-baseline gap-0.5">
+              <span className="text-xl font-bold font-heading text-slate-800 dark:text-white">84</span>
+              <span className="text-[10px] font-mono text-slate-400">%</span>
+            </div>
+            <span className="text-[9px] font-mono uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
+              HUMIDITY
+            </span>
+          </div>
+        </div>
+
+        {/* Orbiting Bubble 3: Temperature (Mid-Left) */}
+        <div
+          onClick={() => setActiveBubble('temperature')}
+          className="absolute -translate-x-32 translate-y-12 pointer-events-auto group cursor-pointer"
+        >
+          <div className="w-28 h-28 rounded-full bg-white/85 dark:bg-slate-900/85 backdrop-blur-xl p-3 shadow-2xl border border-white/60 dark:border-white/10 flex flex-col items-center justify-center text-center transition-all duration-300 hover:scale-110 hover:shadow-amber-500/20">
+            <div className="p-1.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 mb-1">
+              <Wind className="w-4 h-4" />
+            </div>
+            <div className="flex items-baseline gap-0.5">
+              <span className="text-xl font-bold font-heading text-slate-800 dark:text-white">23</span>
+              <span className="text-[10px] font-mono text-slate-400">°C</span>
+            </div>
+            <span className="text-[9px] font-mono uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
+              TEMPERATURE
+            </span>
+          </div>
+        </div>
+
+        {/* Orbiting Bubble 4: PM2.5 / Air (Mid-Right) */}
+        <div
+          onClick={() => setActiveBubble('air')}
+          className="absolute translate-x-36 translate-y-12 pointer-events-auto group cursor-pointer"
+        >
+          <div className="w-28 h-28 rounded-full bg-white/85 dark:bg-slate-900/85 backdrop-blur-xl p-3 shadow-2xl border border-white/60 dark:border-white/10 flex flex-col items-center justify-center text-center transition-all duration-300 hover:scale-110 hover:shadow-emerald-500/20">
+            <div className="p-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 mb-1">
+              <Zap className="w-4 h-4" />
+            </div>
+            <div className="flex items-baseline gap-0.5">
+              <span className="text-xl font-bold font-heading text-slate-800 dark:text-white">5</span>
+              <span className="text-[10px] font-mono text-slate-400">idx</span>
+            </div>
+            <span className="text-[9px] font-mono uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
+              PM2.5/AIR
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Layer Toggles & Zone Health Legend when requested */}
+      {showControls && !compact && mapLayers.zones && (
+        <MapLegend className="absolute bottom-6 left-6 z-[500]" />
       )}
 
       {/* Interactive Zone Detail Drawer */}
