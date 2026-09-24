@@ -14,6 +14,7 @@ import {
   Moon,
   LogOut,
   Sliders,
+  ClipboardList,
 } from 'lucide-react';
 import { useCityStore } from '../../store/useCityStore';
 import { useTheme } from '../../hooks/useTheme';
@@ -28,13 +29,14 @@ export const SideNav: React.FC = () => {
     { path: '/map', label: 'City Map', icon: LayoutGrid },
     { path: '/insights', label: 'Intelligence', icon: BarChart3 },
     { path: '/alerts', label: 'Security & Alerts', icon: ShieldAlert, badge: unreadAlerts },
+    { path: '/reports', label: 'Civic Reports', icon: ClipboardList },
     { path: '/replay', label: 'Time Replay', icon: History },
     { path: '/feeds', label: 'Feeds Health', icon: Radio },
     { path: '/about', label: 'Settings & Info', icon: Info },
   ];
 
   return (
-    <aside className="hidden md:flex flex-col items-center justify-between w-20 py-6 border-r border-border bg-surface/70 backdrop-blur-xl z-30 flex-shrink-0">
+    <aside className="hidden md:flex flex-col items-center justify-between w-20 py-6 border-r border-border bg-surface/70 backdrop-blur-xl z-30 flex-shrink-0 h-full overflow-y-auto">
       {/* Top: City Logo */}
       <div className="flex flex-col items-center gap-6">
         <NavLink to="/" className="group relative" title="CityPulse Operating System">
