@@ -12,7 +12,7 @@ export const AppShell: React.FC = () => {
   useLiveData();
 
   return (
-    <div className="min-h-screen flex flex-col bg-bg text-text">
+    <div className="h-screen flex flex-col bg-bg text-text overflow-hidden">
       <TopBar />
       <DegradedBanner />
 

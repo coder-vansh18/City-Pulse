@@ -9,6 +9,7 @@ import { Replay } from './pages/Replay';
 import { FeedHealth } from './pages/FeedHealth';
 import { Alerts } from './pages/Alerts';
 import { About } from './pages/About';
+import { CitizenReportPage } from './pages/CitizenReportPage';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -21,6 +22,8 @@ export const AppRoutes: React.FC = () => {
         <Route path="replay" element={<Replay />} />
         <Route path="feeds" element={<FeedHealth />} />
         <Route path="alerts" element={<Alerts />} />
+        <Route path="report" element={<CitizenReportPage />} />
+        <Route path="reports" element={<CitizenReportPage />} />
         <Route path="about" element={<About />} />
         {/* Fallback */}
         <Route path="*" element={<LivePulse />} />
