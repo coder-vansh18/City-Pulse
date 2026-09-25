@@ -394,24 +394,6 @@ export const INITIAL_FEED_ALERTS: FeedAlertItem[] = [
     timeAgo: '7 min ago',
     timestamp: '01:58:12 AM',
   },
-  {
-    id: 'alt-03',
-    feedId: 'air_quality',
-    level: 'warning',
-    title: 'Air Quality API rate approaching limit',
-    message: 'Hourly quota consumption reached 82% of allocated tier. Auto-throttle caching engaged.',
-    timeAgo: '12 min ago',
-    timestamp: '01:53:45 AM',
-  },
-  {
-    id: 'alt-04',
-    feedId: 'weather',
-    level: 'resolved',
-    title: 'Weather feed operating normally',
-    message: 'All 9 micro-climate grid endpoints responding within 183ms SLA. Cache refreshed.',
-    timeAgo: '15 min ago',
-    timestamp: '01:50:00 AM',
-  },
 ];
 
 export const INITIAL_LIVE_EVENTS: LiveStreamEventItem[] = [
@@ -437,16 +419,6 @@ export const INITIAL_LIVE_EVENTS: LiveStreamEventItem[] = [
   },
   {
     id: 'evt-03',
-    feedId: 'power',
-    feedLabel: 'POWER',
-    title: 'Grid load increased',
-    description: 'Substation North active load 418.6 MW',
-    time: '02:05:12',
-    zone: 'Zone 7',
-    severity: 0.22,
-  },
-  {
-    id: 'evt-04',
     feedId: 'incident',
     feedLabel: 'INCIDENT',
     title: 'New 311 incident detected',
@@ -454,26 +426,6 @@ export const INITIAL_LIVE_EVENTS: LiveStreamEventItem[] = [
     time: '02:05:11',
     zone: 'Zone 5',
     severity: 0.65,
-  },
-  {
-    id: 'evt-05',
-    feedId: 'air_quality',
-    feedLabel: 'AIR QUALITY',
-    title: 'AQI updated',
-    description: 'Index 38 (Good) / PM2.5 at 9.4 µg/m³',
-    time: '02:05:10',
-    zone: 'Zone 3',
-    severity: 0.18,
-  },
-  {
-    id: 'evt-06',
-    feedId: 'noise',
-    feedLabel: 'ACOUSTIC',
-    title: 'Sound baseline check',
-    description: 'Node 881 recorded 54.2 dBA (Nominal)',
-    time: '02:05:08',
-    zone: 'Zone 1',
-    severity: 0.15,
   },
 ];
 
@@ -500,17 +452,6 @@ export const INITIAL_ANOMALIES: AiAnomalyItem[] = [
     timestamp: '01:54 AM',
     severity: 'high',
   },
-  {
-    id: 'anom-03',
-    feedId: 'noise',
-    title: 'Transient acoustic flare',
-    feedName: 'Noise Monitoring (Acoustic Sensors)',
-    expected: '48 dBA average',
-    observed: '78 dBA spike',
-    anomalyScore: 76,
-    timestamp: '01:46 AM',
-    severity: 'medium',
-  },
 ];
 
 export const INITIAL_CORRELATIONS: CrossFeedCorrelationItem[] = [
@@ -524,16 +465,6 @@ export const INITIAL_CORRELATIONS: CrossFeedCorrelationItem[] = [
     severity: 'watch',
     actionRecommendation: 'Deploy traffic signal priority override on Corridor B and alert stormwater rapid-response crew.',
   },
-  {
-    id: 'corr-02',
-    title: 'Acoustic Flare & 311 Street Light Inquiries',
-    hypothesis: 'Concurrently timed acoustic transient and multiple dark block tickets indicate transformer fuse tripping.',
-    sources: ['noise', 'incident', 'power'],
-    confidenceScore: 92,
-    impactZone: 'Sector 5 / Historic Market',
-    severity: 'strained',
-    actionRecommendation: 'Dispatch municipal grid engineering unit to Substation 08 breaker panel.',
-  }
 ];
 
 export const GENERATE_THROUGHPUT_SERIES = (timeWindow: string): ThroughputPoint[] => {

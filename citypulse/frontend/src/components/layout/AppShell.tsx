@@ -5,6 +5,7 @@ import { SideNav } from './SideNav';
 import { BottomNav } from './BottomNav';
 import { DegradedBanner } from './DegradedBanner';
 import { DemoPanel } from './DemoPanel';
+import { IncidentNotificationToast } from '../common/IncidentNotificationToast';
 import { useLiveData } from '../../hooks/useLiveData';
 
 export const AppShell: React.FC = () => {
@@ -15,6 +16,7 @@ export const AppShell: React.FC = () => {
     <div className="h-screen flex flex-col bg-bg text-text overflow-hidden">
       <TopBar />
       <DegradedBanner />
+      <IncidentNotificationToast />
 
       <div className="flex-1 flex overflow-hidden">
         <SideNav />

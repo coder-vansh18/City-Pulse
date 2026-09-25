@@ -47,6 +47,8 @@ interface CityState {
   activeFeedFilter: FeedType | 'all';
   timeWindowMin: number;
 
+  activeToasts: Alert[];
+
   // Actions
   setConfig: (config: CityConfig) => void;
   setPulse: (pulse: Pulse) => void;
@@ -59,6 +61,10 @@ interface CityState {
   setAlerts: (alerts: Alert[]) => void;
   addAlert: (alert: Alert) => void;
   acknowledgeAlert: (alertId: string) => void;
+  clearAllAlerts: () => void;
+  deleteAlert: (alertId: string) => void;
+  dismissToast: (alertId: string) => void;
+  clearAllToasts: () => void;
   setRules: (rules: AlertRule[]) => void;
   setReplay: (replay: ReplayState) => void;
   setActiveScenario: (scenario: ActiveScenario | null) => void;
@@ -132,6 +138,8 @@ export const useCityStore = create<CityState>((set, get) => ({
   activeFeedFilter: 'all',
   timeWindowMin: 60,
 
+  activeToasts: [],
+
   setConfig: (config) => set({ config }),
   setPulse: (pulse) => set({ pulse, mode: pulse.mode }),
   setZonesGeoJSON: (zonesGeoJSON) => set({ zonesGeoJSON }),
@@ -156,13 +164,30 @@ export const useCityStore = create<CityState>((set, get) => ({
   addAlert: (alert) =>
     set((state) => ({
       alerts: [alert, ...state.alerts.filter((a) => a.id !== alert.id)],
+      activeToasts: [alert, ...state.activeToasts.filter((t) => t.id !== alert.id).slice(0, 2)],
     })),
   acknowledgeAlert: (alertId) =>
     set((state) => ({
       alerts: state.alerts.map((a) =>
         a.id === alertId ? { ...a, acknowledged: true } : a
       ),
+      activeToasts: state.activeToasts.filter((t) => t.id !== alertId),
     })),
+  clearAllAlerts: () =>
+    set((state) => ({
+      alerts: state.alerts.map((a) => ({ ...a, acknowledged: true })),
+      activeToasts: [],
+    })),
+  deleteAlert: (alertId) =>
+    set((state) => ({
+      alerts: state.alerts.filter((a) => a.id !== alertId),
+      activeToasts: state.activeToasts.filter((t) => t.id !== alertId),
+    })),
+  dismissToast: (alertId) =>
+    set((state) => ({
+      activeToasts: state.activeToasts.filter((t) => t.id !== alertId),
+    })),
+  clearAllToasts: () => set({ activeToasts: [] }),
   setRules: (rules) => set({ rules }),
   setReplay: (replay) => set({ replay, mode: replay.active ? 'replay' : 'live' }),
   setActiveScenario: (activeScenario) => set({ activeScenario }),

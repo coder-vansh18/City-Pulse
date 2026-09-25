@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   PlusCircle,
   ListFilter,
@@ -16,6 +17,10 @@ import {
   ArrowUpDown,
   SlidersHorizontal,
   ChevronDown,
+  X,
+  Scale,
+  CheckSquare,
+  Home,
 } from 'lucide-react';
 import { useCitizenReportStore } from '../store/useCitizenReportStore';
 import { ReportCategory, ReportStatus, PriorityLevel, EvidenceStatus, CitizenReport } from '../types/citizenReport';
@@ -28,6 +33,7 @@ import { ReportSubmissionWizard } from '../components/citizenReport/ReportSubmis
 import { Card } from '../components/common/Card';
 
 export const CitizenReportPage: React.FC = () => {
+  const navigate = useNavigate();
   const {
     reports,
     selectedReport,
@@ -156,15 +162,55 @@ export const CitizenReportPage: React.FC = () => {
           </p>
         </div>
 
-        {/* View Mode Switches & Map Button */}
+        {/* View Mode Switches, Cross-Navigation & Map Button */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Quick Dashboard Link */}
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-2 hover:bg-surface-2/80 text-text border border-border text-xs font-semibold cursor-pointer transition-colors"
+            title="Navigate to Dashboard"
+          >
+            <Home className="w-3.5 h-3.5 text-accent" />
+            <span className="hidden sm:inline">Dashboard</span>
+          </button>
+
+          {/* Disputed Items Link */}
+          <button
+            onClick={() => navigate('/disputed')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-2 hover:bg-surface-2/80 text-text border border-border text-xs font-semibold cursor-pointer transition-colors"
+            title="View Contested & Disputed Cases"
+          >
+            <Scale className="w-3.5 h-3.5 text-rose-500" />
+            <span>Disputed</span>
+          </button>
+
+          {/* Action Plans Link */}
+          <button
+            onClick={() => navigate('/action-plan')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-2 hover:bg-surface-2/80 text-text border border-border text-xs font-semibold cursor-pointer transition-colors"
+            title="View Municipal Action Plans"
+          >
+            <CheckSquare className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Action Plans</span>
+          </button>
+
+          {/* Documents Link */}
+          <button
+            onClick={() => navigate('/documents')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-2 hover:bg-surface-2/80 text-text border border-border text-xs font-semibold cursor-pointer transition-colors"
+            title="View Civic Evidence Documents"
+          >
+            <FileText className="w-3.5 h-3.5 text-indigo-500" />
+            <span>Docs</span>
+          </button>
+
           {/* Interactive Map Button */}
           <button
             onClick={() => setIsMapOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-surface-2 hover:bg-surface-2/80 text-text border border-border text-xs font-semibold cursor-pointer transition-colors shadow-xs"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-surface-2 hover:bg-surface-2/80 text-text border border-border text-xs font-semibold cursor-pointer transition-colors shadow-xs"
           >
             <MapIcon className="w-3.5 h-3.5 text-accent" />
-            <span>View Issue Map</span>
+            <span>Issue Map</span>
           </button>
 
           {/* Mode Tabs */}
@@ -178,7 +224,7 @@ export const CitizenReportPage: React.FC = () => {
               }`}
             >
               <ListFilter className="w-3.5 h-3.5" />
-              <span>Reports Feed ({reports.length})</span>
+              <span>Feed ({reports.length})</span>
             </button>
 
             <button
@@ -202,7 +248,7 @@ export const CitizenReportPage: React.FC = () => {
               }`}
             >
               <PlusCircle className="w-3.5 h-3.5" />
-              <span>Report an Issue</span>
+              <span>Report Issue</span>
             </button>
           </div>
         </div>
@@ -304,8 +350,17 @@ export const CitizenReportPage: React.FC = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search report ID, title, address, evidence..."
-                  className="w-full pl-9 pr-4 py-2 rounded-xl border border-border bg-surface-2 text-text text-xs focus:outline-none focus:border-accent"
+                  className="w-full pl-9 pr-8 py-2 rounded-xl border border-border bg-surface-2 text-text text-xs focus:outline-none focus:border-accent"
                 />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-text p-0.5 rounded-full"
+                    title="Clear search"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
 
               {/* Quick Filters */}
