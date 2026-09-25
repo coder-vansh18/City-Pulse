@@ -14,6 +14,10 @@ import { FeedHealth } from './pages/FeedHealth';
 import { Alerts } from './pages/Alerts';
 import { About } from './pages/About';
 import { CitizenReportPage } from './pages/CitizenReportPage';
+import { DisputedItemsPage } from './pages/DisputedItemsPage';
+import { ActionPlanPage } from './pages/ActionPlanPage';
+import { DocumentsPage } from './pages/DocumentsPage';
+import { SettingsPage } from './pages/SettingsPage';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { ForgotPassword } from './pages/ForgotPassword';
@@ -73,6 +77,12 @@ export const AppRoutes: React.FC = () => {
         <Route path="alerts" element={<Alerts />} />
         <Route path="report" element={<CitizenReportPage />} />
         <Route path="reports" element={<CitizenReportPage />} />
+        <Route path="disputed" element={<DisputedItemsPage />} />
+        <Route path="disputes" element={<DisputedItemsPage />} />
+        <Route path="action-plan" element={<ActionPlanPage />} />
+        <Route path="action-plans" element={<ActionPlanPage />} />
+        <Route path="documents" element={<DocumentsPage />} />
+        <Route path="settings" element={<SettingsPage />} />
         <Route path="about" element={<About />} />
       </Route>
 
