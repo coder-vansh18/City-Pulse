@@ -18,15 +18,27 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 async function fetchJson<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('citypulse_auth_token') : null;
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options?.headers as Record<string, string>),
+  };
+
   const res = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
+    credentials: 'include',
     ...options,
+    headers,
   });
 
   if (!res.ok) {
+    if (res.status === 401 && endpoint !== '/api/auth/login' && endpoint !== '/api/auth/register') {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('citypulse_auth_token');
+      }
+    }
+
     let errorDetail = res.statusText;
     try {
       const errJson = await res.json();

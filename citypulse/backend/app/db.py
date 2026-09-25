@@ -88,18 +88,49 @@ class Database:
                 )
             """)
 
-            # Seed default alert rules if not present
-            cursor.execute("SELECT COUNT(*) as cnt FROM alert_rules")
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    email TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    role TEXT DEFAULT 'operator',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
+
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS sessions (
+                    token TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    expires_at TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(user_id) REFERENCES users(id)
+                )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)")
+
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS password_resets (
+                    token TEXT PRIMARY KEY,
+                    email TEXT NOT NULL,
+                    expires_at TEXT NOT NULL,
+                    used INTEGER DEFAULT 0
+                )
+            """)
+
+            # Seed default demo operator account if not present
+            cursor.execute("SELECT COUNT(*) as cnt FROM users WHERE email = 'demo@citypulse.local'")
             if cursor.fetchone()["cnt"] == 0:
-                default_rules = [
-                    ("rule_pulse_critical", "Critical Zone Pulse Score", "pulse_score", None, "<", 45.0, 1, 120),
-                    ("rule_anomaly_high", "High Severity Anomaly Detected", "anomaly_severity", None, ">", 0.70, 1, 90),
-                    ("rule_feed_offline", "Civic Feed Ingestion Disruption", "feed_down", None, ">", 60.0, 1, 180),
-                ]
-                cursor.executemany("""
-                    INSERT INTO alert_rules (id, name, metric, zone_id, operator, threshold, enabled, cooldown_s)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, default_rules)
+                from app.auth_utils import hash_password
+                now_iso = datetime.now(timezone.utc).isoformat()
+                demo_hash = hash_password("Demo@1234")
+                cursor.execute("""
+                    INSERT INTO users (id, name, email, password_hash, role, created_at, updated_at)
+                    VALUES ('usr-demo-001', 'Demo City Operator', 'demo@citypulse.local', ?, 'operator', ?, ?)
+                """, (demo_hash, now_iso, now_iso))
 
             conn.commit()
 
@@ -341,5 +372,114 @@ class Database:
             cursor.execute("DELETE FROM alert_rules WHERE id = ?", (rule_id,))
             conn.commit()
             return cursor.rowcount > 0
+
+    # User & Session Management
+    def create_user(self, user_id: str, name: str, email: str, password_hash: str, role: str = "operator") -> Dict[str, Any]:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        with self._get_conn() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO users (id, name, email, password_hash, role, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (user_id, name, email.lower().strip(), password_hash, role, now_iso, now_iso))
+            conn.commit()
+            return {
+                "id": user_id,
+                "name": name,
+                "email": email.lower().strip(),
+                "role": role,
+                "created_at": now_iso,
+                "updated_at": now_iso
+            }
+
+    def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+        with self._get_conn() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM users WHERE email = ?", (email.lower().strip(),))
+            row = cursor.fetchone()
+            if row:
+                return dict(row)
+            return None
+
+    def get_user_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
+        with self._get_conn() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+            row = cursor.fetchone()
+            if row:
+                return dict(row)
+            return None
+
+    def update_user_password(self, user_id: str, password_hash: str) -> bool:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        with self._get_conn() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?
+            """, (password_hash, now_iso, user_id))
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def create_session(self, token: str, user_id: str, expires_at: str) -> Dict[str, Any]:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        with self._get_conn() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT OR REPLACE INTO sessions (token, user_id, expires_at, created_at)
+                VALUES (?, ?, ?, ?)
+            """, (token, user_id, expires_at, now_iso))
+            conn.commit()
+            return {
+                "token": token,
+                "user_id": user_id,
+                "expires_at": expires_at,
+                "created_at": now_iso
+            }
+
+    def get_session(self, token: str) -> Optional[Dict[str, Any]]:
+        with self._get_conn() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT s.token, s.user_id, s.expires_at, s.created_at,
+                       u.id, u.name, u.email, u.role
+                FROM sessions s
+                JOIN users u ON s.user_id = u.id
+                WHERE s.token = ?
+            """, (token,))
+            row = cursor.fetchone()
+            if row:
+                return dict(row)
+            return None
+
+    def delete_session(self, token: str) -> bool:
+        with self._get_conn() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM sessions WHERE token = ?", (token,))
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def create_password_reset(self, token: str, email: str, expires_at: str) -> None:
+        with self._get_conn() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO password_resets (token, email, expires_at, used)
+                VALUES (?, ?, ?, 0)
+            """, (token, email.lower().strip(), expires_at))
+            conn.commit()
+
+    def get_password_reset(self, token: str) -> Optional[Dict[str, Any]]:
+        with self._get_conn() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM password_resets WHERE token = ? AND used = 0", (token,))
+            row = cursor.fetchone()
+            if row:
+                return dict(row)
+            return None
+
+    def mark_password_reset_used(self, token: str) -> None:
+        with self._get_conn() as conn:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE password_resets SET used = 1 WHERE token = ?", (token,))
+            conn.commit()
 
 db = Database()
