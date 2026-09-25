@@ -18,7 +18,7 @@ from app.anomaly import anomaly_detector
 from app.correlation import correlation_engine
 from app.summary import build_template_summary
 from app.agent import agent_monitor
-from app.routes import rest_router, ws_router
+from app.routes import rest_router, ws_router, auth_router
 from app.routes.ws import broadcast_ws_message
 
 logging.basicConfig(
@@ -125,6 +125,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
 app.include_router(rest_router)
 app.include_router(ws_router)
 

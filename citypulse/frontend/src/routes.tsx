@@ -1,6 +1,10 @@
 import React from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, Navigate } from 'react-router-dom';
 import { AppShell } from './components/layout/AppShell';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { PublicRoute } from './components/auth/PublicRoute';
+
+// Pages
 import { LivePulse } from './pages/LivePulse';
 import { MapView } from './pages/MapView';
 import { ZoneDetail } from './pages/ZoneDetail';
@@ -10,11 +14,56 @@ import { FeedHealth } from './pages/FeedHealth';
 import { Alerts } from './pages/Alerts';
 import { About } from './pages/About';
 import { CitizenReportPage } from './pages/CitizenReportPage';
+import { Login } from './pages/Login';
+import { Register } from './pages/Register';
+import { ForgotPassword } from './pages/ForgotPassword';
+import { ResetPassword } from './pages/ResetPassword';
 
 export const AppRoutes: React.FC = () => {
   return (
     <Routes>
-      <Route path="/" element={<AppShell />}>
+      {/* Public Authentication Routes */}
+      <Route
+        path="/login"
+        element={
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          <PublicRoute>
+            <Register />
+          </PublicRoute>
+        }
+      />
+      <Route
+        path="/forgot-password"
+        element={
+          <PublicRoute>
+            <ForgotPassword />
+          </PublicRoute>
+        }
+      />
+      <Route
+        path="/reset-password/:token"
+        element={
+          <PublicRoute>
+            <ResetPassword />
+          </PublicRoute>
+        }
+      />
+
+      {/* Protected CityPulse Application Routes */}
+      <Route
+        element={
+          <ProtectedRoute>
+            <AppShell />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<LivePulse />} />
         <Route path="map" element={<MapView />} />
         <Route path="zone/:id" element={<ZoneDetail />} />
@@ -25,9 +74,10 @@ export const AppRoutes: React.FC = () => {
         <Route path="report" element={<CitizenReportPage />} />
         <Route path="reports" element={<CitizenReportPage />} />
         <Route path="about" element={<About />} />
-        {/* Fallback */}
-        <Route path="*" element={<LivePulse />} />
       </Route>
+
+      {/* Fallback to Root (which triggers auth check) */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };

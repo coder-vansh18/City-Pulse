@@ -1,13 +1,23 @@
 import React from 'react';
-import { MapPin, ThumbsUp, Clock, AlertTriangle, CheckCircle2, ChevronRight } from 'lucide-react';
+import {
+  MapPin,
+  ThumbsUp,
+  Clock,
+  ChevronRight,
+  Sparkles,
+  ShieldCheck,
+  AlertTriangle,
+  CheckCircle2,
+  Hourglass,
+} from 'lucide-react';
 import { CitizenReport, ReportStatus } from '../../types/citizenReport';
-import { Card } from '../common/Card';
+import { SeverityBadge } from './SeverityBadge';
+import { EvidenceVerificationBadge } from './EvidenceVerificationBadge';
 
 interface ReportCardProps {
   report: CitizenReport;
   onSelect: (report: CitizenReport) => void;
-  onUpvote: (id: string, e: React.MouseEvent) => void;
-  onStatusChange?: (id: string, newStatus: ReportStatus, e: React.MouseEvent) => void;
+  onToggleConfirm: (id: string, e: React.MouseEvent) => void;
 }
 
 const STATUS_CONFIG: Record<ReportStatus, { label: string; bg: string; text: string; border: string }> = {
@@ -35,15 +45,20 @@ const STATUS_CONFIG: Record<ReportStatus, { label: string; bg: string; text: str
     text: 'text-emerald-400',
     border: 'border-emerald-500/30',
   },
+  disputed: {
+    label: 'Resolution Disputed',
+    bg: 'bg-rose-500/10',
+    text: 'text-rose-400',
+    border: 'border-rose-500/30',
+  },
 };
 
 export const ReportCard: React.FC<ReportCardProps> = ({
   report,
   onSelect,
-  onUpvote,
-  onStatusChange,
+  onToggleConfirm,
 }) => {
-  const statusInfo = STATUS_CONFIG[report.status];
+  const statusInfo = STATUS_CONFIG[report.status] || STATUS_CONFIG.submitted;
   const createdDate = new Date(report.createdAt).toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
@@ -51,86 +66,137 @@ export const ReportCard: React.FC<ReportCardProps> = ({
     minute: '2-digit',
   });
 
+  const isResolved = report.status === 'resolved';
+
   return (
     <div
       onClick={() => onSelect(report)}
-      className="group cursor-pointer rounded-2xl border border-border bg-surface hover:bg-surface-2/80 transition-all duration-200 p-4 shadow-sm hover:shadow-md space-y-3"
+      className="group cursor-pointer rounded-2xl border border-border bg-surface hover:bg-surface-2/90 transition-all duration-200 p-4 shadow-sm hover:shadow-md space-y-3 relative flex flex-col justify-between"
     >
-      {/* Header: User Info & Status */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-accent/20 text-accent font-bold text-xs flex items-center justify-center border border-accent/30">
-            {report.reporterName ? report.reporterName[0] : 'C'}
-          </div>
-          <div>
-            <div className="text-xs font-semibold text-text">
-              {report.reporterName || 'Anonymous Citizen'}
-            </div>
-            <div className="text-[10px] text-muted flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              <span>{createdDate}</span>
-            </div>
-          </div>
-        </div>
-
-        <span
-          className={`text-[11px] font-semibold font-mono px-2.5 py-1 rounded-full border ${statusInfo.bg} ${statusInfo.text} ${statusInfo.border}`}
-        >
-          {statusInfo.label}
-        </span>
-      </div>
-
-      {/* Title & Description */}
-      <div>
+      <div className="space-y-3">
+        {/* Header: User Info, Priority Pill & Status */}
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-bold text-text group-hover:text-accent transition-colors line-clamp-1">
-            {report.title}
-          </h3>
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-2 text-muted border border-border">
-            {report.id}
-          </span>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-accent/20 text-accent font-bold text-xs flex items-center justify-center border border-accent/30">
+              {report.reporterName ? report.reporterName[0] : 'C'}
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-text">
+                  {report.reporterName || 'Anonymous Resident'}
+                </span>
+                {report.isMyReport && (
+                  <span className="text-[9px] font-mono bg-accent/20 text-accent px-1.5 py-0.2 rounded font-bold">
+                    YOU
+                  </span>
+                )}
+              </div>
+              <div className="text-[10px] text-muted flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                <span>{createdDate}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <SeverityBadge priority={report.priority} size="sm" />
+            <span
+              className={`text-[10px] font-semibold font-mono px-2 py-0.5 rounded-full border ${statusInfo.bg} ${statusInfo.text} ${statusInfo.border}`}
+            >
+              {statusInfo.label}
+            </span>
+          </div>
         </div>
-        <p className="text-xs text-muted mt-1 line-clamp-2 leading-relaxed">
-          {report.description}
-        </p>
+
+        {/* Title & Report ID */}
+        <div>
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="text-sm font-bold text-text group-hover:text-accent transition-colors line-clamp-1">
+              {report.title}
+            </h3>
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-2 text-muted border border-border flex-shrink-0">
+              {report.id}
+            </span>
+          </div>
+          <p className="text-xs text-muted mt-1 line-clamp-2 leading-relaxed">
+            {report.description}
+          </p>
+        </div>
+
+        {/* Photos / Evidence Thumbnails */}
+        {report.images && report.images.length > 0 && (
+          <div className="flex items-center gap-2 overflow-x-auto py-0.5">
+            {report.images.map((img, i) => (
+              <img
+                key={i}
+                src={img}
+                alt={`Evidence ${i + 1}`}
+                className="w-16 h-16 rounded-xl object-cover border border-border flex-shrink-0"
+              />
+            ))}
+            {isResolved && report.resolutionEvidence && (
+              <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-emerald-500/50 flex-shrink-0">
+                <img
+                  src={report.resolutionEvidence.afterImage}
+                  alt="Resolution After"
+                  className="w-full h-full object-cover"
+                />
+                <span className="absolute bottom-0 inset-x-0 bg-emerald-600/90 text-[8px] font-bold text-white text-center py-0.5 uppercase">
+                  Fixed
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Evidence Verification Indicator & SLA Status */}
+        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] pt-1">
+          <EvidenceVerificationBadge
+            status={report.evidence.evidenceStatus}
+            score={report.evidence.scoreBreakdown.totalScore}
+            size="sm"
+          />
+
+          <div className="flex items-center gap-1 text-[11px] font-mono">
+            {isResolved ? (
+              <span className="text-emerald-400 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" /> Resolved in SLA
+              </span>
+            ) : report.sla.breached ? (
+              <span className="text-rose-400 flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" /> SLA Overdue
+              </span>
+            ) : (
+              <span className="text-muted flex items-center gap-1">
+                <Hourglass className="w-3 h-3 text-amber-400" />
+                {Math.floor(report.sla.remainingMinutes / 60)}h {report.sla.remainingMinutes % 60}m SLA
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Image Thumbnails (Inspired by Reference UI) */}
-      {report.images && report.images.length > 0 && (
-        <div className="flex items-center gap-2 overflow-x-auto py-1">
-          {report.images.map((img, i) => (
-            <img
-              key={i}
-              src={img}
-              alt={`Issue photo ${i + 1}`}
-              className="w-16 h-16 rounded-xl object-cover border border-border flex-shrink-0"
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Category & Location */}
-      <div className="flex items-center justify-between text-xs pt-1 border-t border-border/50">
-        <div className="flex items-center gap-2">
-          <span className="px-2 py-0.5 rounded-md bg-accent/10 text-accent font-medium text-[11px]">
-            #{report.category}
-          </span>
-          <span className="text-muted flex items-center gap-1 text-[11px] truncate max-w-[180px]">
-            <MapPin className="w-3 h-3 text-accent" />
-            {report.location.address}
-          </span>
+      {/* Footer: Location & Citizen Confirmation Button */}
+      <div className="flex items-center justify-between text-xs pt-2.5 border-t border-border/60 mt-2">
+        <div className="flex items-center gap-1.5 text-muted text-[11px] truncate max-w-[170px]">
+          <MapPin className="w-3.5 h-3.5 text-accent flex-shrink-0" />
+          <span className="truncate">{report.location.address}</span>
         </div>
 
-        {/* Upvote & Action Button */}
+        {/* Citizen Confirmation Pill */}
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={(e) => onUpvote(report.id, e)}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface-2 hover:bg-accent/20 text-muted hover:text-accent transition-colors border border-border text-xs font-semibold cursor-pointer"
-            title="Upvote/Confirm issue"
+            onClick={(e) => onToggleConfirm(report.id, e)}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
+              report.confirmedByMe
+                ? 'bg-accent/20 text-accent border-accent/40 font-bold shadow-sm'
+                : 'bg-surface-2 hover:bg-surface-2/80 text-muted hover:text-text border-border'
+            }`}
+            title="Confirm this issue is active in your neighborhood"
           >
-            <ThumbsUp className="w-3.5 h-3.5" />
-            <span>{report.upvotes}</span>
+            <ThumbsUp className={`w-3.5 h-3.5 ${report.confirmedByMe ? 'fill-current' : ''}`} />
+            <span>{report.upvotes} confirmed</span>
           </button>
 
           <ChevronRight className="w-4 h-4 text-muted group-hover:text-accent transition-transform group-hover:translate-x-0.5" />

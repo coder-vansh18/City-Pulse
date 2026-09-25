@@ -7,22 +7,15 @@ import {
   ShieldAlert,
   History,
   Radio,
-  Settings,
   Info,
   Activity,
-  Sun,
-  Moon,
-  LogOut,
-  Sliders,
   ClipboardList,
 } from 'lucide-react';
 import { useCityStore } from '../../store/useCityStore';
-import { useTheme } from '../../hooks/useTheme';
 
 export const SideNav: React.FC = () => {
   const alerts = useCityStore((s) => s.alerts);
   const unreadAlerts = alerts.filter((a) => !a.acknowledged).length;
-  const { theme, toggleTheme } = useTheme();
 
   const navLinks = [
     { path: '/', label: 'Dashboard', icon: Home },
@@ -36,7 +29,7 @@ export const SideNav: React.FC = () => {
   ];
 
   return (
-    <aside className="hidden md:flex flex-col items-center justify-between w-20 py-6 border-r border-border bg-surface/70 backdrop-blur-xl z-30 flex-shrink-0 h-full overflow-y-auto">
+    <aside className="hidden md:flex flex-col items-center w-20 py-6 border-r border-border bg-surface/70 backdrop-blur-xl z-30 flex-shrink-0 h-full overflow-y-auto">
       {/* Top: City Logo */}
       <div className="flex flex-col items-center gap-6">
         <NavLink to="/" className="group relative" title="CityPulse Operating System">
@@ -69,18 +62,6 @@ export const SideNav: React.FC = () => {
             </NavLink>
           ))}
         </nav>
-      </div>
-
-      {/* Bottom Actions: Theme Toggle & Info */}
-      <div className="flex flex-col items-center gap-3">
-        <button
-          onClick={toggleTheme}
-          className="p-3 rounded-2xl text-muted hover:text-text hover:bg-surface-2 transition-colors cursor-pointer border border-transparent hover:border-border"
-          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
-          aria-label="Toggle Theme"
-        >
-          {theme === 'dark' ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5" />}
-        </button>
       </div>
     </aside>
   );
